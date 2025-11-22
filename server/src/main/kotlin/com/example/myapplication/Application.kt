@@ -4,6 +4,10 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import com.example.myapplication.data.DatabaseFactory
+import com.example.myapplication.data.UserDataSourceImpl
+import com.example.myapplication.routes.authRoutes
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -40,7 +44,10 @@ fun main() {
 }
 
 fun Application.module() {
-    // 1. Installer la sérialisation JSON (pour lire le body des requêtes)
+    DatabaseFactory.init()
+    val userDataSource = UserDataSourceImpl()
+
+     // 1. Installer la sérialisation JSON (pour lire le body des requêtes)
     install(ContentNegotiation) {
         json()
     }
@@ -145,6 +152,11 @@ fun Application.module() {
                 call.respondText("$token")
                 call.respondText("Bonjour $username ! Vous avez accès aux données sécurisées. (Token expire : $expiresAt)")
             }
+    routing {
+        authRoutes(userDataSource)
+
+        get("/") {
+            call.respondText("Ktor: ${Greeting().greet()}")
         }
     }
 }
