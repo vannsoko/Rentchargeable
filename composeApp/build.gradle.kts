@@ -11,7 +11,7 @@ plugins {
 
 kotlin {
     androidTarget()
-    jvm("desktop")
+    jvm()
 
     sourceSets {
         val commonMain by getting {
@@ -28,7 +28,7 @@ kotlin {
                 implementation(libs.androidx.activity.compose)
             }
         }
-        val desktopMain by getting {
+        val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
             }
@@ -61,7 +61,7 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.example.myapplication.MainKt"
+        mainClass = "com.example.myapplication.DesktopKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
