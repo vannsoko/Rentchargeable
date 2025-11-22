@@ -10,6 +10,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 interface UserDataSource {
     fun createUser(user: User)
     fun findUserByUsername(username: String): User?
+
 }
 
 class UserDataSourceImpl : UserDataSource {

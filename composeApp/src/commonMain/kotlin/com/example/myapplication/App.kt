@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.ktor.http.*
 import kotlinx.coroutines.launch
@@ -21,12 +22,15 @@ fun App() {
         val scope = rememberCoroutineScope()
 
         if (isLoggedIn) {
-            LoggedInScreen(username) {
+            MapScreen(
+                onProfileClicked = {
                 isLoggedIn = false
                 username = ""
                 password = ""
                 message = ""
             }
+        )
+
         } else {
             LoginScreen(
                 username = username,
@@ -36,7 +40,7 @@ fun App() {
                 message = message,
                 onLogin = {
                     scope.launch {
-                        val response = apiService.login(User(username = username, password = password))
+                        val response = apiService.login(UserCredentials(username = username, password = password))
                         if (response.status == HttpStatusCode.OK) {
                             isLoggedIn = true
                             message = "Login successful!"
@@ -47,7 +51,7 @@ fun App() {
                 },
                 onRegister = {
                     scope.launch {
-                        val response = apiService.register(User(username = username, password = password))
+                        val response = apiService.register(UserCredentials(username = username, password = password))
                         message = if (response.status == HttpStatusCode.Created) {
                             "Registration successful! Please log in."
                         } else {
@@ -73,7 +77,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Login or Register", style = MaterialTheme.typography.headlineSmall)
+        Text("What would you like to do today?", style = MaterialTheme.typography.bodyLarge, fontFamily = FontFamily.Monospace)
         Spacer(Modifier.height(16.dp))
 
         OutlinedTextField(value = username, onValueChange = onUsernameChange, label = { Text("Username") })
@@ -91,17 +95,17 @@ fun LoginScreen(
     }
 }
 
-@Composable
-fun LoggedInScreen(username: String, onLogout: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("Welcome, $username!", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = onLogout) {
-            Text("Logout")
-        }
-    }
-}
+// @Composable
+// fun LoggedInScreen(username: String, onLogout: () -> Unit) {
+//     Column(
+//         modifier = Modifier.fillMaxSize().padding(16.dp),
+//         horizontalAlignment = Alignment.CenterHorizontally,
+//         verticalArrangement = Arrangement.Center
+//     ) {
+//         Text("Welcome, $username!", style = MaterialTheme.typography.headlineMedium)
+//         Spacer(Modifier.height(16.dp))
+//         Button(onClick = onLogout) {
+//             Text("Logout")
+//         }
+//     }
+// }
