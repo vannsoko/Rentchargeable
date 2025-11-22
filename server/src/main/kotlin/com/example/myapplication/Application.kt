@@ -1,11 +1,13 @@
 package com.example.myapplication
 
+import at.favre.lib.crypto.bcrypt.BCrypt
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import com.example.myapplication.data.DatabaseFactory
 import com.example.myapplication.data.UserDataSourceImpl
+import com.example.myapplication.data.StationDataSourceImpl
 import com.example.myapplication.routes.authRoutes
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
@@ -30,6 +32,13 @@ data class UserCredentials(val username: String, val password: String)
 data class User(val id: Int,
                 val username: String,
                 val password: String,
+    )
+
+@Serializable
+data class Station(val id: Int,
+                   var status: Boolean,
+                   val latitude: Double,
+                   val longitude: Double,
     )
 
 
@@ -66,6 +75,7 @@ fun String.sha256(): String {
 fun Application.module() {
     DatabaseFactory.init()
     val userDataSource = UserDataSourceImpl()
+    val stationDataSource = StationDataSourceImpl()
     var id=0
     // Install JSON serialization (to read the request body)
     install(ContentNegotiation) {
@@ -113,20 +123,28 @@ fun Application.module() {
                     .withExpiresAt(Date(System.currentTimeMillis() + 86400000)) // 24 hours
                     .sign(Algorithm.HMAC256(SECRET))
 
-                call.respond(TokenResponse(token))
+                call.respond(HttpStatusCode.OK, TokenResponse(token))
             } else {
                 call.respond(HttpStatusCode.Unauthorized, "Incorrect credentials")
             }
         }
 
-        post("/signup") {
+        post("/register") {
             val user = call.receive<UserCredentials>()
+            // Check if already exists
+            if (userDataSource.findUserByUsername(user.username) != null) {
+                call.respond(HttpStatusCode.Conflict, "Username already exists")
+                return@post
+            }
+
             userDataSource.createUser(User(
                 id = id,
                 username = user.username,
                 password = user.password.sha256()
             ))
             id += 1
+            call.respond(HttpStatusCode.Created, "User registered successfully")
+
 
         }
         // Get the list of station in the range
