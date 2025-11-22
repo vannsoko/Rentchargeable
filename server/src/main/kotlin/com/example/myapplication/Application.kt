@@ -25,7 +25,7 @@ import java.util.*
 data class UserCredentials(val username: String, val password: String)
 
 @Serializable
-data class User(val username: String, val password: String, )
+data class User(val id: Int, val username: String, val password: String, )
 
 
 @Serializable
@@ -46,8 +46,8 @@ fun main() {
 fun Application.module() {
     DatabaseFactory.init()
     val userDataSource = UserDataSourceImpl()
-
-     // 1. Installer la sérialisation JSON (pour lire le body des requêtes)
+    val id=0
+    // 1. Installer la sérialisation JSON (pour lire le body des requêtes)
     install(ContentNegotiation) {
         json()
     }
@@ -77,6 +77,9 @@ fun Application.module() {
     // 3. Définir les Routes
     routing {
         authRoutes(userDataSource)
+        get("/") {
+            call.respondText("Ktor: ${Greeting().greet()}")
+        }
 
         post("/login") {
             val user = call.receive<UserCredentials>()
@@ -102,7 +105,12 @@ fun Application.module() {
 
         post("/signup") {
             val user = call.receive<UserCredentials>()
-            // TODO: create an input in the database
+            userDataSource.createUser(User(
+                id = id,
+                username = user.username,
+                password = user.password
+            ))
+            id = id + 1
 
         }
         // Get the list of station in the range
@@ -150,4 +158,5 @@ fun Application.module() {
                 call.respondText("Bonjour $username ! Vous avez accès aux données sécurisées. (Token expire : $expiresAt)")
             }
         }
+    }
 }
