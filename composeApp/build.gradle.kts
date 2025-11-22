@@ -27,6 +27,7 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation(libs.androidx.activity.compose)
+                implementation("org.osmdroid:osmdroid-android:6.1.18")
             }
         }
         val jvmMain by getting {

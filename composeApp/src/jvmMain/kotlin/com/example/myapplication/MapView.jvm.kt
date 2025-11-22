@@ -1,3 +1,5 @@
+@file:JvmName("DesktopMapViewKt")
+
 package com.example.myapplication
 
 import androidx.compose.runtime.Composable
