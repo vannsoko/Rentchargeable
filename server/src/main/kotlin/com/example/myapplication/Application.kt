@@ -19,19 +19,23 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import java.util.*
+import java.security.MessageDigest
+import kotlin.text.Charsets
 
 // --- Modèles de données (Data Classes) ---
 @Serializable
 data class UserCredentials(val username: String, val password: String)
 
 @Serializable
-data class User(val id: Int, val username: String, val password: String, )
+data class User(val id: Int,
+                val username: String,
+                val password: String,
+    )
 
 
 @Serializable
 data class TokenResponse(val token: String)
 
-// --- Configuration ---
 // Dans un vrai projet, mettez ça dans application.conf ou des variables d'env
 const val SECRET = "mon-secret-super-securise"
 const val ISSUER = "mon-serveur-ktor"
@@ -43,16 +47,32 @@ fun main() {
         .start(wait = true)
 }
 
+
+fun String.sha256(): String {
+    // 1. Convert the input string to a byte array using a specific charset (UTF-8)
+    val bytes = this.toByteArray(Charsets.UTF_8)
+
+    // 2. Get an instance of the hashing algorithm
+    val md = MessageDigest.getInstance("SHA-256")
+
+    // 3. Compute the hash digest (a byte array)
+    val digest = md.digest(bytes)
+
+    // 4. Convert the byte array to a hexadecimal string representation
+    return digest.fold("") { str, byte -> str + "%02x".format(byte) }
+}
+
+
 fun Application.module() {
     DatabaseFactory.init()
     val userDataSource = UserDataSourceImpl()
-    val id=0
-    // 1. Installer la sérialisation JSON (pour lire le body des requêtes)
+    var id=0
+    // Install JSON serialization (to read the request body)
     install(ContentNegotiation) {
         json()
     }
 
-    // 2. Configurer l'Authentification JWT
+    // Configure JWT Authentication
     install(Authentication) {
         jwt("auth-jwt") {
             realm = REALM
@@ -63,7 +83,7 @@ fun Application.module() {
                     .build()
             )
             validate { credential ->
-                // Si le token contient une audience valide, on autorise
+                // if token is valid -> authorised
                 if (credential.payload.audience.contains(AUDIENCE)) {
                     JWTPrincipal(credential.payload)
                 } else null
@@ -74,7 +94,6 @@ fun Application.module() {
         }
     }
 
-    // 3. Définir les Routes
     routing {
         authRoutes(userDataSource)
         get("/") {
@@ -84,17 +103,14 @@ fun Application.module() {
         post("/login") {
             val user = call.receive<UserCredentials>()
 
-            // Simuler une vérification en base de données
-            // ICI : Remplacez par votre propre logique (BDD, Hachage mot de passe)
-            // TODO: Implement authentification with databank
-            if (user.username == "admin" && user.password == "password123") {
+            if (userDataSource.findUserByUsername(user.username)?.password == user.password.sha256()) {
 
-                // Génération du token
+                // Token generation
                 val token = JWT.create()
                     .withAudience(AUDIENCE)
                     .withIssuer(ISSUER)
-                    .withClaim("username", user.username) // On stocke le nom dans le token
-                    .withExpiresAt(Date(System.currentTimeMillis() + 86400000)) // 24 heure
+                    .withClaim("username", user.username)
+                    .withExpiresAt(Date(System.currentTimeMillis() + 86400000)) // 24 hours
                     .sign(Algorithm.HMAC256(SECRET))
 
                 call.respond(TokenResponse(token))
@@ -108,19 +124,18 @@ fun Application.module() {
             userDataSource.createUser(User(
                 id = id,
                 username = user.username,
-                password = user.password
+                password = user.password.sha256()
             ))
-            id = id + 1
+            id += 1
 
         }
         // Get the list of station in the range
-        get("/stations/{distance}/{pos}") {
-            val distance = call.parameters["distance"]
+        get("/stations/{pos}") {
             val pos = call.parameters["pos"]
             // TODO: get all the station in the range
         }
 
-        // --- Route Sécurisée ---
+        // Secured API paths
         authenticate("auth-jwt") {
             // Get user data from the database
             get("/user") {
@@ -147,15 +162,6 @@ fun Application.module() {
                 val token = call.request.headers["Authorization"]?.substringAfter("Bearer ")
 
 
-            }
-            get("/api/me") {
-                // Récupérer les infos contenues dans le token
-                val principal = call.principal<JWTPrincipal>()
-                val username = principal!!.payload.getClaim("username").asString()
-                val expiresAt = principal.payload.expiresAt
-                val token = call.request.headers["Authorization"]?.substringAfter("Bearer ")
-                call.respondText("$token")
-                call.respondText("Bonjour $username ! Vous avez accès aux données sécurisées. (Token expire : $expiresAt)")
             }
         }
     }
