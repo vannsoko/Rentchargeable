@@ -26,27 +26,10 @@ import kotlin.text.Charsets
 
 // --- Modèles de données (Data Classes) ---
 @Serializable
-data class UserCredentials(val username: String, val password: String)
-
-@Serializable
-data class User(val id: Int,
-                val username: String,
-                val password: String,
-    )
-
-@Serializable
-data class Station(val id: Int,
-                   var status: Boolean,
-                   val latitude: Double,
-                   val longitude: Double,
-    )
-
-
-@Serializable
 data class TokenResponse(val token: String)
 
 // Dans un vrai projet, mettez ça dans application.conf ou des variables d'env
-const val SECRET = "mon-secret-super-securise"
+const val JWT_SECRET = "mon-secret-super-securise"
 const val ISSUER = "mon-serveur-ktor"
 const val AUDIENCE = "mon-app-kmp"
 const val REALM = "Access to API"
@@ -75,8 +58,7 @@ fun String.sha256(): String {
 fun Application.module() {
     DatabaseFactory.init()
     val userDataSource = UserDataSourceImpl()
-    val stationDataSource = StationDataSourceImpl()
-    var id=0
+    var id = 0
     // Install JSON serialization (to read the request body)
     install(ContentNegotiation) {
         json()
@@ -87,7 +69,7 @@ fun Application.module() {
         jwt("auth-jwt") {
             realm = REALM
             verifier(
-                JWT.require(Algorithm.HMAC256(SECRET))
+                JWT.require(Algorithm.HMAC256(JWT_SECRET))
                     .withAudience(AUDIENCE)
                     .withIssuer(ISSUER)
                     .build()
@@ -105,7 +87,6 @@ fun Application.module() {
     }
 
     routing {
-        authRoutes(userDataSource)
         get("/") {
             call.respondText("Ktor: ${Greeting().greet()}")
         }
@@ -121,7 +102,7 @@ fun Application.module() {
                     .withIssuer(ISSUER)
                     .withClaim("username", user.username)
                     .withExpiresAt(Date(System.currentTimeMillis() + 86400000)) // 24 hours
-                    .sign(Algorithm.HMAC256(SECRET))
+                    .sign(Algorithm.HMAC256(JWT_SECRET))
 
                 call.respond(HttpStatusCode.OK, TokenResponse(token))
             } else {
@@ -144,9 +125,8 @@ fun Application.module() {
             ))
             id += 1
             call.respond(HttpStatusCode.Created, "User registered successfully")
-
-
         }
+
         // Get the list of station in the range
         get("/stations/{pos}") {
             val pos = call.parameters["pos"]

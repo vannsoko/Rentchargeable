@@ -21,6 +21,7 @@ kotlin {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
+                implementation(compose.materialIconsExtended) // Add this line
             }
         }
         val androidMain by getting {
@@ -37,7 +38,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.example.myapplication.app"
+    namespace = "com.example.myapplication"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

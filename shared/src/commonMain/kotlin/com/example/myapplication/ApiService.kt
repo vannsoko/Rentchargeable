@@ -15,16 +15,16 @@ class ApiService {
     }
 
     // Use 10.0.2.2 for Android emulator to connect to localhost
-    private val baseUrl = "http://0.0.0.0:8080"
+    private val baseUrl = "http://10.0.2.2:8080"
 
-    suspend fun register(user: User): HttpResponse {
+    suspend fun register(user: UserCredentials): HttpResponse {
         return client.post("$baseUrl/register") {
             contentType(ContentType.Application.Json)
             setBody(user)
         }
     }
 
-    suspend fun login(user: User): HttpResponse {
+    suspend fun login(user: UserCredentials): HttpResponse {
         return client.post("$baseUrl/login") {
             contentType(ContentType.Application.Json)
             setBody(user)

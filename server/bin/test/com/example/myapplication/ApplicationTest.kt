@@ -37,7 +37,7 @@ class ApplicationTest {
         // --- Test 1: Successful Registration ---
         val response = client.post("/register") {
             contentType(ContentType.Application.Json)
-            setBody(User(username = "testuser", password = "password123"))
+            setBody(User(id = 0, username = "testuser", password = "password123"))
         }
         assertEquals(HttpStatusCode.Created, response.status)
         assertEquals("User registered successfully", response.bodyAsText())
@@ -46,7 +46,7 @@ class ApplicationTest {
         // Try to register the same user again
         val conflictResponse = client.post("/register") {
             contentType(ContentType.Application.Json)
-            setBody(User(username = "testuser", password = "anotherpassword"))
+            setBody(User(id = 0, username = "testuser", password = "anotherpassword"))
         }
         assertEquals(HttpStatusCode.Conflict, conflictResponse.status)
         assertEquals("Username already exists", conflictResponse.bodyAsText())
@@ -61,7 +61,7 @@ class ApplicationTest {
             }
             application { module() }
 
-            val testUser = User(username = "logintester", password = "password123")
+            val testUser = User(id = 0, username = "logintester", password = "password123")
 
             // Register the user first
             client.post("/register") {
@@ -80,7 +80,7 @@ class ApplicationTest {
             // --- Test 2: Failed Login (Wrong Password) ---
             val wrongPasswordResponse = client.post("/login") {
                 contentType(ContentType.Application.Json)
-                setBody(User(username = testUser.username, password = "wrongpassword"))
+                setBody(User(id = 0, username = testUser.username, password = "wrongpassword"))
             }
             assertEquals(HttpStatusCode.Unauthorized, wrongPasswordResponse.status)
             assertEquals("Invalid credentials", wrongPasswordResponse.bodyAsText())
@@ -88,7 +88,7 @@ class ApplicationTest {
             // --- Test 3: Failed Login (User Not Found) ---
             val nonExistentUserResponse = client.post("/login") {
                 contentType(ContentType.Application.Json)
-                setBody(User(username = "nosuchuser", password = "password"))
+                setBody(User(id = 0, username = "nosuchuser", password = "password"))
             }
             assertEquals(HttpStatusCode.Unauthorized, nonExistentUserResponse.status)
             assertEquals("Invalid credentials", nonExistentUserResponse.bodyAsText())
