@@ -21,6 +21,7 @@ fun App() {
         val apiService = remember { ApiService() }
         val scope = rememberCoroutineScope()
 
+        isLoggedIn = true
         if (isLoggedIn) {
             MapScreen(
                 onProfileClicked = {
@@ -95,17 +96,20 @@ fun LoginScreen(
     }
 }
 
-// @Composable
-// fun LoggedInScreen(username: String, onLogout: () -> Unit) {
-//     Column(
-//         modifier = Modifier.fillMaxSize().padding(16.dp),
-//         horizontalAlignment = Alignment.CenterHorizontally,
-//         verticalArrangement = Arrangement.Center
-//     ) {
-//         Text("Welcome, $username!", style = MaterialTheme.typography.headlineMedium)
-//         Spacer(Modifier.height(16.dp))
-//         Button(onClick = onLogout) {
-//             Text("Logout")
-//         }
-//     }
-// }
+ @Composable
+ fun LoggedInScreen(username: String, onLogout: () -> Unit) {
+     Column(
+         modifier = Modifier.fillMaxSize().padding(16.dp),
+         horizontalAlignment = Alignment.CenterHorizontally,
+         verticalArrangement = Arrangement.Center
+     ) {
+         Text("Welcome, $username!", style = MaterialTheme.typography.headlineMedium)
+         Spacer(Modifier.height(16.dp))
+            MapViewTest(
+            modifier = Modifier.fillMaxSize(),
+            )
+         Button(onClick = onLogout) {
+             Text("Logout")
+         }
+     }
+ }
