@@ -34,7 +34,7 @@ dependencies {
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
 
-}
+
 /*
 dependencies {
     implementation("io.ktor:ktor-server-auth:3.3.1")
@@ -47,10 +47,7 @@ dependencies {
     testImplementation(libs.kotlin.testJunit)
 }*/
 
-    implementation("io.ktor:ktor-server-content-negotiation:2.3.11")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.11")
     implementation("io.ktor:ktor-server-netty:2.3.11")
-    implementation("io.ktor:ktor-server-auth:2.3.11")
     implementation("io.ktor:ktor-server-sessions:2.3.11")
     implementation("org.jetbrains.exposed:exposed-core:0.50.0")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.50.0")

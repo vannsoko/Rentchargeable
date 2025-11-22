@@ -76,6 +76,8 @@ fun Application.module() {
 
     // 3. Définir les Routes
     routing {
+        authRoutes(userDataSource)
+
         post("/login") {
             val user = call.receive<UserCredentials>()
 
@@ -138,11 +140,6 @@ fun Application.module() {
 
 
             }
-
-
-
-
-
             get("/api/me") {
                 // Récupérer les infos contenues dans le token
                 val principal = call.principal<JWTPrincipal>()
@@ -152,11 +149,5 @@ fun Application.module() {
                 call.respondText("$token")
                 call.respondText("Bonjour $username ! Vous avez accès aux données sécurisées. (Token expire : $expiresAt)")
             }
-    routing {
-        authRoutes(userDataSource)
-
-        get("/") {
-            call.respondText("Ktor: ${Greeting().greet()}")
         }
-    }
 }
