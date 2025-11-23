@@ -122,7 +122,7 @@ fun RentScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            "Enter your car (model, plate, etc):",
+            "Enter your car:", // maybe add a smart feature soon
             style = MaterialTheme.typography.headlineMedium
         )
         Spacer(Modifier.height(16.dp))
