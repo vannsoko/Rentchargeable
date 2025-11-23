@@ -1,16 +1,28 @@
 package com.example.myapplication.data
 
+
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseFactory {
+
+    object Stations : Table() {
+        val id = integer("id").autoIncrement()
+        var status = bool("status")
+        val latitude = double("latitude")
+        val longitude = double("longitude")
+        val userId = integer("user_id").references(Users.id)
+        override val primaryKey = PrimaryKey(Users.id)
+    }
+
     object Users : Table() {
         val id = integer("id").autoIncrement()
-        val username = varchar("username", 128).uniqueIndex()
+        val username = varchar("username", 50)
         val password = varchar("password", 64)
-
+        val carCount = integer("car_count").default(0)
+        val cars = varchar("cars", 255).default("")
         override val primaryKey = PrimaryKey(id)
     }
 
@@ -21,6 +33,7 @@ object DatabaseFactory {
 
         transaction(database) {
             SchemaUtils.create(Users)
+            SchemaUtils.create(Stations)
         }
     }
 }

@@ -47,12 +47,11 @@ dependencies {
     testImplementation(libs.kotlin.testJunit)
 }*/
 
-    implementation("io.ktor:ktor-server-netty:2.3.11")
-    implementation("io.ktor:ktor-server-sessions:2.3.11")
-    implementation("org.jetbrains.exposed:exposed-core:0.50.0")
-    implementation("org.jetbrains.exposed:exposed-jdbc:0.50.0")
+    implementation("org.jetbrains.exposed:exposed-core:0.46.0")
+    implementation("org.jetbrains.exposed:exposed-dao:0.46.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.46.0")
+    // Your chosen database driver, e.g., for H2:
     implementation("com.h2database:h2:2.2.224")
-    implementation("at.favre.lib:bcrypt:0.10.2")
 
     //testing
     testImplementation("io.ktor:ktor-server-test-host:2.3.11")
