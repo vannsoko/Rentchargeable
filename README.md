@@ -1,13 +1,19 @@
-This is a Kotlin Multiplatform project targeting Android, Desktop (JVM), Server.
+## Inspiration
+The biggest source of inspiration came from helping the people who want to make the world a better place. Electric cars have a projection of being a popular choice to reduce the climate impact of a citizen in the future, and is already starting today. CO2 levels are rising, one article from BBC says that a quarter of the emissions come from transport. The forth-most being single passenger cars that produce 164g per kilometer traveled.
+
+But! Electric cars with single passengers produce approximately a third of that in the same metric. We hope that by showing initiative towards this ecosystem, we encourage more people to not only use electric cars but to also build software for this future.
+
+## What it does
+Through our platform, citizens can connect to other citizens by allowing them to host their own electric-car charging stations and be a customer of one as well.
+
+---
+
+### This is a Kotlin Multiplatform project targeting Android, Desktop (JVM), Server.
 
 * [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
   - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
   - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
 
 * [/server](./server/src/main/kotlin) is for the Ktor server application.
 
