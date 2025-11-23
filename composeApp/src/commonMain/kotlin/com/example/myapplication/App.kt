@@ -1,16 +1,12 @@
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
-import androidx.compose.*
 import androidx.compose.material3.*
 import androidx.compose.ui.*
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.*
 import com.example.myapplication.*
-import io.ktor.client.call.body
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.*
-
-data class TokenResponse(val token: String)
 
 @Composable
 fun App() {
@@ -18,11 +14,10 @@ fun App() {
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var message by remember { mutableStateOf("") }
-        var carValue by remember { mutableStateOf("") }
         var currentPage by remember { mutableStateOf("login") }
         val apiService = remember { ApiService() }
         val scope = rememberCoroutineScope()
-        var token by remember { mutableStateOf("") }
+        var responseBody by remember { mutableStateOf<User?>(null) }
 
         when (currentPage) {
             "login" -> LoginScreen(
@@ -34,9 +29,8 @@ fun App() {
                 onLogin = {
                     scope.launch {
                         val response = apiService.login(UserCredentials(username = username, password = password))
+                        print(response.status)
                         if (response.status == HttpStatusCode.OK) {
-                            val responseBody: TokenResponse = response.body() // message expected to be token
-                            token = responseBody.token
                             currentPage = "map"
                             message = "Login successful!"
                         } else {
@@ -66,8 +60,9 @@ fun App() {
                 }
             }
             "rent" -> RentScreen(
+                username = username,
                 apiService = apiService,
-                token = token,
+                token = "" /* token, now just pass "" or remove if you want */,
                 onCarAdded = { currentPage = "map" }
             )
             "sell" -> PropertyForm(
@@ -111,6 +106,7 @@ fun ActionSelectionScreen(onSelect: (String) -> Unit) {
 
 @Composable
 fun RentScreen(
+    username: String,
     apiService: ApiService,
     token: String,
     onCarAdded: () -> Unit // Call this to navigate after a car is added (optional)
@@ -125,8 +121,12 @@ fun RentScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Enter your car (model, plate, etc):", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            "Enter your car (model, plate, etc):",
+            style = MaterialTheme.typography.headlineMedium
+        )
         Spacer(Modifier.height(16.dp))
+
         OutlinedTextField(
             value = carValue,
             onValueChange = { carValue = it },
@@ -139,7 +139,7 @@ fun RentScreen(
                 message = null
                 scope.launch {
                     try {
-                        val response = apiService.addCarToUser(carValue, token)
+                        val response = apiService.addCarToUser(carValue, username, token)
                         if (response.status.value in 200..299) {
                             message = "Car added!"
                             onCarAdded()
@@ -176,50 +176,88 @@ fun PropertyForm(onSubmit: (Station) -> Unit) {
     var price by remember { mutableStateOf("") }
     var status by remember { mutableStateOf(true) }
 
-    // We use this lambda to update the lat/lng fields when the map is clicked
-    fun updateLatLngFromMap(lat: Double, lng: Double) {
-        latitude = lat.toString()
-        longitude = lng.toString()
-    }
-
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("Add Station") },
+        title = { Text("Add Station", fontSize = 16.sp) },
         text = {
-            Column {
-                Text("Click on the map to pick a location:")
-                // This MapView is used only for selection in the dialog.
+            Column(
+                modifier = Modifier
+                    .widthIn(min = 280.dp, max = 340.dp) // wider dialog
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Click on the map to pick a location:", fontSize = 13.sp)
                 MapView(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
-                    locations = emptyList(),
+                        .height(54.dp), // much smaller map
+                    locations = listOf(),
+                    selectedLocation = if(latitude.isNotBlank() && longitude.isNotBlank()) {
+                        Pair(latitude.toDouble(), longitude.toDouble())
+                    } else null,
+                    onMarkerClick = { /* ... */ },
                     onMapClick = { lat, lng ->
                         latitude = lat.toString()
                         longitude = lng.toString()
                     }
                 )
-                OutlinedTextField(value = latitude, onValueChange = { latitude = it }, label = { Text("Latitude") })
-                OutlinedTextField(value = longitude, onValueChange = { longitude = it }, label = { Text("Longitude") })
-                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Price") })
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = latitude,
+                    onValueChange = { latitude = it },
+                    label = { Text("Latitude", fontSize = 12.sp) },
+                    textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                )
+                OutlinedTextField(
+                    value = longitude,
+                    onValueChange = { longitude = it },
+                    label = { Text("Longitude", fontSize = 12.sp) },
+                    textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                )
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Price", fontSize = 12.sp) },
+                    textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 8.dp)
+                ) {
                     Checkbox(checked = status, onCheckedChange = { status = it })
-                    Text("Available")
+                    Text("Available", fontSize = 13.sp)
                 }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onSubmit(
-                    Station(
-                        id = 0,
-                        status = status,
-                        latitude = latitude,
-                        longitude = longitude,
-                        userId = 0 // Set actual userId in backend
+            Button(
+                modifier = Modifier
+                    .padding(bottom = 4.dp)
+                    .fillMaxWidth(0.6f),
+                onClick = {
+                    onSubmit(
+                        Station(
+                            id = 0,
+                            status = status,
+                            latitude = latitude,
+                            longitude = longitude,
+                            userId = 0
+                        )
                     )
-                )
-            }) { Text("Submit") }
+                }
+            ) {
+                Text("Submit", fontSize = 15.sp)
+            }
         }
     )
 }

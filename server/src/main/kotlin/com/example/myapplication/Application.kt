@@ -25,6 +25,9 @@ import kotlin.text.Charsets
 @Serializable
 data class TokenResponse(val token: String)
 
+@Serializable
+data class CarRequest(val carValue: String, val username: String)
+
 // Dans un vrai projet, mettez ça dans application.conf ou des variables d'env
 const val JWT_SECRET = "mon-secret-super-securise"
 const val ISSUER = "mon-serveur-ktor"
@@ -58,64 +61,22 @@ fun Application.module() {
     val stationDataSource = StationDataSourceImpl()
     var count_usr_id = 0
     var count_station_id = 0
+
     // Install JSON serialization (to read the request body)
     install(ContentNegotiation) {
         json()
     }
 
 
-    // Configure JWT Authentication
-    install(Authentication) {
-        jwt("auth-jwt") {
-            realm = REALM
-            verifier(
-                JWT.require(Algorithm.HMAC256(JWT_SECRET))
-                    .withAudience(AUDIENCE)
-                    .withIssuer(ISSUER)
-                    .build()
-            )
-            validate { credential ->
-                // if token is valid -> authorised
-                if (credential.payload.audience.contains(AUDIENCE)) {
-                    JWTPrincipal(credential.payload)
-                } else null
-            }
-            challenge { defaultScheme, realm ->
-                call.respond(HttpStatusCode.Unauthorized, "invalid or expired Token")
-            }
-        }
-    }
-
     routing {
         get("/") {
             call.respondText("Ktor: ${Greeting().greet()}")
         }
-/*
-        get("/token-validation") {
-            val token = a
-            try {
-                jwtVerifier.verify(token)
-                call.respond(HttpStatusCode.OK, "token is valid")
-            } catch {
-                // Token is invalid
-                call.respond(HttpStatusCode.Unauthorized, "Invalid token")
-            }
-        }*/
 
         post("/login") {
             val user = call.receive<UserCredentials>()
-
             if (userDataSource.findUserByUsername(user.username)?.password == user.password.sha256()) {
-
-                // Token generation
-                val token = JWT.create()
-                    .withAudience(AUDIENCE)
-                    .withIssuer(ISSUER)
-                    .withClaim("username", user.username)
-                    .withExpiresAt(Date(System.currentTimeMillis() + 86400000)) // 24 hours
-                    .sign(Algorithm.HMAC256(JWT_SECRET))
-
-                call.respond(HttpStatusCode.OK, token)
+                call.respond(HttpStatusCode.OK, TokenResponse(token = "dummy-token"))
             } else {
                 call.respond(HttpStatusCode.Unauthorized, "Incorrect credentials")
             }
@@ -144,60 +105,48 @@ fun Application.module() {
             // TODO: get all the station in the range
         }
 
-        // Secured API paths
-        authenticate("auth-jwt") {
-            // Get user data from the database
-            get("/user") {
-                //val token = call.parameters["token"]
-                val token = call.request.headers["Authorization"]?.substringAfter("Bearer ")
+        get("/user") {
+            // Don't check token anymore
+            // val token = call.request.headers["Authorization"]?.substringAfter("Bearer ")
+            // TODO: get the user data from the database
+        }
+        // Update station status by a given user
+        put("/station/{id}") {
+            // val token = call.request.headers["Authorization"]?.substringAfter("Bearer ")
+            // TODO: update the station data in the database
+        }
+        // Create a station
+        post("/station/create/{long}/{lat}") {
+            val long: String = call.parameters["long"].toString()
+            val lat: String = call.parameters["lat"].toString()
 
-                // TODO: get the user data from the database
-            }
-            // Update station status by a given user
-            put("/station/{id}") {
-                val id = call.parameters["id"]
-                //val token = call.parameters["token"]
-                val token = call.request.headers["Authorization"]?.substringAfter("Bearer ")
-                // TODO: update the station data in the database
-            }
-            // Create a station
-            post("/station/create/{long}/{lat}") {
-                val long: String = call.parameters["long"].toString()
-                val lat: String = call.parameters["lat"].toString()
+            // No principal/token use!
+            // val principal = call.principal<JWTPrincipal>()
+            // val username = principal!!.payload.getClaim("username").asString()
+            // val usrId = userDataSource.findUserByUsername(username)?.id
+            val usrId = 0 // Or pick a default/dummy user for now
+            stationDataSource.createStation(Station(count_station_id, false, lat, long, usrId))
+            count_station_id += 1
+            call.respond(HttpStatusCode.Created, "Station has been created")
+        }
+        // Delete a given station
+        post("/station/delete/{id}") {
+            // Don't check principal
+            val usr_id = 0 // Or pick dummy for now
+            stationDataSource.deleteStation( usr_id )
+            call.respond(HttpStatusCode.OK, "Station has been deleted")
+        }
 
-                val principal = call.principal<JWTPrincipal>()
-                val username = principal!!.payload.getClaim("username").asString()
-                val usrId = userDataSource.findUserByUsername(username)?.id
-                if (usrId != null) {
-                    stationDataSource.createStation(Station(count_station_id, false, lat, long, usrId))
-                    count_station_id += 1
-                    call.respond(HttpStatusCode.Created, "Station has been created")
-                } else {
-                    call.respond(HttpStatusCode.InternalServerError, "User id couldn't be found in the database")
-                }
-            }
-            // Delete a given station
-            post("/station/delete/{id}") {
-                val principal = call.principal<JWTPrincipal>()
-                val username = principal!!.payload.getClaim("username").asString()
-                val usr_id = userDataSource.findUserByUsername(username)?.id
-                if (usr_id!= null) {
-                    stationDataSource.deleteStation( usr_id )
-                }
-                call.respond(HttpStatusCode.OK, "Station has been deleted")
-            }
-
-            post("/user/addCar") {
-                val principal = call.principal<JWTPrincipal>()
-                val username = principal?.payload?.getClaim("username")?.asString()
-                val user = userDataSource.findUserByUsername(username ?: "")
-                val carValue = call.receive<String>()
-                if (user != null) {
-                    userDataSource.addCarToUser(user.id, carValue)
-                    call.respond(HttpStatusCode.OK, "Car added")
-                } else {
-                    call.respond(HttpStatusCode.Unauthorized, "User not found")
-                }
+        post("/user/addCar") {
+            // No principal/token!
+            val req = call.receive<CarRequest>()
+            val username = req.username
+            val user = userDataSource.findUserByUsername(username)
+            if (user != null) {
+                userDataSource.addCarToUser(user.id, req.carValue)
+                call.respond(HttpStatusCode.OK, "Car added")
+            } else {
+                call.respond(HttpStatusCode.Unauthorized, "User not found")
             }
         }
     }

@@ -6,6 +6,10 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class CarRequest(val carValue: String, val username: String)
 
 class ApiService {
     private val client = HttpClient {
@@ -32,43 +36,22 @@ class ApiService {
         }
     }
 
-    suspend fun addCarToUser(car: String, token: String): HttpResponse {
+    suspend fun addCarToUser(car: String, name: String, token: String): HttpResponse {
         return client.post("$baseUrl/user/addCar") {
-            bearerAuth(token)
-            setBody(car)
+            contentType(ContentType.Application.Json)    // <-- Add this!
+            // setBody(car)                              // Don't send just the string
+            setBody(CarRequest(
+                carValue = car,
+                username = name
+            ))          // Send as JSON object
         }
     }
 
-    // list stations
-    suspend fun listStations(): HttpResponse {
-        return client.post("$baseUrl/stations/{pos}")
-    }
-
-
-    suspend fun updateStationStatus(id: Int, token: String): HttpResponse {
-        return client.post("$baseUrl/station/$id") {
-            bearerAuth(token)
-        }
-    }
-
-    // to call a lot in front-end
-    suspend fun isTokenValid(token: String): Boolean {
-        return (!isTokenExpired(token))
-    }
 
     // /station/create/{long}/{lat}
     suspend fun createStation(propertyDetails: Station): HttpResponse {
-        var long = propertyDetails.longitude
-        var lat = propertyDetails.latitude
+        val long = propertyDetails.longitude
+        val lat = propertyDetails.latitude
         return client.post("$baseUrl/station/create/$long/$lat")
-    }
-
-    suspend fun getAvailableStations(carValue: String): HttpResponse {
-        return client.post(baseUrl)
-    }
-
-    // /station/delete/{id}
-    suspend fun deleteStation(): HttpResponse {
-        return client.post(baseUrl)
     }
 }
