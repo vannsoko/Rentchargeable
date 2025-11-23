@@ -27,11 +27,13 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation(libs.androidx.activity.compose)
+                implementation("org.osmdroid:osmdroid-android:6.1.18")
             }
         }
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+		implementation("org.jxmapviewer:jxmapviewer2:2.6")
             }
         }
     }
