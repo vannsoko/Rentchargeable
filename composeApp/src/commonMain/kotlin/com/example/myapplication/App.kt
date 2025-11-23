@@ -3,6 +3,7 @@ import androidx.compose.runtime.*
 import androidx.compose.*
 import androidx.compose.material3.*
 import androidx.compose.ui.*
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.*
 import com.example.myapplication.*
 import io.ktor.client.call.body
@@ -65,28 +66,20 @@ fun App() {
                 }
             }
             "rent" -> RentScreen(
-                carValue = carValue,
-                onCarValueChange = { carValue = it },
-                onCheckStations = {
-                    scope.launch {
-                        availableStations = apiService.getAvailableStations() as List<Station>
-                        isLoggedIn = true
-                        currentPage = "map"
-                    }
-                }
+                apiService = apiService,
+                token = token,
+                onCarAdded = { currentPage = "map" }
             )
             "sell" -> PropertyForm(
                 onSubmit = { propertyDetails ->
                     scope.launch {
                         apiService.createStation(propertyDetails)
-                        isLoggedIn = true
                         currentPage = "map"
                     }
                 }
             )
             "map" -> MapScreen(
                 onProfileClicked = {
-                    isLoggedIn = false
                     username = ""
                     password = ""
                     message = ""
@@ -118,24 +111,60 @@ fun ActionSelectionScreen(onSelect: (String) -> Unit) {
 
 @Composable
 fun RentScreen(
-    carValue: String,
-    onCarValueChange: (String) -> Unit,
-    onCheckStations: () -> Unit
+    apiService: ApiService,
+    token: String,
+    onCarAdded: () -> Unit // Call this to navigate after a car is added (optional)
 ) {
+    var carValue by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Enter your car model", style = MaterialTheme.typography.headlineMedium)
+        Text("Enter your car (model, plate, etc):", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(16.dp))
         OutlinedTextField(
             value = carValue,
-            onValueChange = onCarValueChange,
-            label = { Text("Car Model") }
+            onValueChange = { carValue = it },
+            label = { Text("Car") }
         )
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onCheckStations) { Text("Check Available Stations") }
+        Button(
+            onClick = {
+                isLoading = true
+                message = null
+                scope.launch {
+                    try {
+                        val response = apiService.addCarToUser(carValue, token)
+                        if (response.status.value in 200..299) {
+                            message = "Car added!"
+                            onCarAdded()
+                        } else {
+                            message = "Error: ${response.status.description}"
+                        }
+                    } catch (e: Exception) {
+                        message = "Failed: ${e.message}"
+                    } finally {
+                        isLoading = false
+                    }
+                }
+            },
+            enabled = carValue.isNotBlank() && !isLoading
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Text("Add Car")
+            }
+        }
+        if (message != null) {
+            Spacer(Modifier.height(16.dp))
+            Text(message ?: "")
+        }
     }
 }
 
@@ -147,11 +176,29 @@ fun PropertyForm(onSubmit: (Station) -> Unit) {
     var price by remember { mutableStateOf("") }
     var status by remember { mutableStateOf(true) }
 
+    // We use this lambda to update the lat/lng fields when the map is clicked
+    fun updateLatLngFromMap(lat: Double, lng: Double) {
+        latitude = lat.toString()
+        longitude = lng.toString()
+    }
+
     AlertDialog(
         onDismissRequest = {},
         title = { Text("Add Station") },
         text = {
             Column {
+                Text("Click on the map to pick a location:")
+                // This MapView is used only for selection in the dialog.
+                MapView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    locations = emptyList(),
+                    onMapClick = { lat, lng ->
+                        latitude = lat.toString()
+                        longitude = lng.toString()
+                    }
+                )
                 OutlinedTextField(value = latitude, onValueChange = { latitude = it }, label = { Text("Latitude") })
                 OutlinedTextField(value = longitude, onValueChange = { longitude = it }, label = { Text("Longitude") })
                 OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Price") })

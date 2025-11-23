@@ -16,7 +16,8 @@ data class GeoPos(val latitude: Double, val longitude: Double)
 expect fun MapView(
     modifier: Modifier,
     locations: List<Pair<String, GeoPos>>,
-    onMarkerClick: (String) -> Unit
+    onMarkerClick: (String) -> Unit = {},
+    onMapClick: (lat: Double, long: Double) -> Unit = { _, _ -> }
 )
 
 

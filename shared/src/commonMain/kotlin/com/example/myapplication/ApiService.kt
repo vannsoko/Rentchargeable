@@ -15,7 +15,7 @@ class ApiService {
     }
 
     // Use 10.0.2.2 for Android emulator to connect to localhost
-    private val baseUrl = "http://0.0.0.0:8080"
+    private val baseUrl = "http://10.0.2.2:8080"
 
     suspend fun register(user: UserCredentials): HttpResponse {
         return client.post("$baseUrl/register") {
@@ -29,6 +29,13 @@ class ApiService {
         return client.post("$baseUrl/login") {
             contentType(ContentType.Application.Json)
             setBody(user)
+        }
+    }
+
+    suspend fun addCarToUser(car: String, token: String): HttpResponse {
+        return client.post("$baseUrl/user/addCar") {
+            bearerAuth(token)
+            setBody(car)
         }
     }
 
@@ -50,8 +57,10 @@ class ApiService {
     }
 
     // /station/create/{long}/{lat}
-    suspend fun createStation(): HttpResponse {
-        return client.post("$baseUrl/")
+    suspend fun createStation(propertyDetails: Station): HttpResponse {
+        var long = propertyDetails.longitude
+        var lat = propertyDetails.latitude
+        return client.post("$baseUrl/station/create/$long/$lat")
     }
 
     suspend fun getAvailableStations(carValue: String): HttpResponse {

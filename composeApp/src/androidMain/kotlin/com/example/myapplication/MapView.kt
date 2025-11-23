@@ -16,15 +16,15 @@ import org.osmdroid.views.overlay.Marker
 actual fun MapView(
     modifier: Modifier,
     locations: List<Pair<String, GeoPos>>,
-    onMarkerClick: (String) -> Unit
+    onMarkerClick: (String) -> Unit,
+    onMapClick: (lat: Double, long: Double) -> Unit // <-- Add this parameter!
 ) {
-    // Verwende rememberUpdatedState, um sicherzustellen, dass die Lambda-Funktion immer aktuell ist.
     val onMarkerClickState by rememberUpdatedState(onMarkerClick)
+    val onMapClickState by rememberUpdatedState(onMapClick)
 
     AndroidView(
         modifier = modifier,
         factory = { context ->
-            // Die Factory wird einmal ausgeführt, um die Ansicht zu erstellen und zu konfigurieren.
             OsmdroidMapView(context).apply {
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
@@ -61,6 +61,16 @@ actual fun MapView(
             }
 
             // 4. Karte neu zeichnen, um die Änderungen anzuzeigen.
+            // Set a listener for map clicks, if none present (and remove and replace if already set)
+            mapView.setOnTouchListener { v, event ->
+                if (event.action == android.view.MotionEvent.ACTION_UP) {
+                    val proj = mapView.projection
+                    val geoPoint = proj.fromPixels(event.x.toInt(), event.y.toInt())
+                    onMapClickState(geoPoint.latitude, geoPoint.longitude)
+                }
+                false
+            }
+
             mapView.invalidate()
         }
     )
